@@ -58,6 +58,11 @@ src/
 - **SSR query:** QueryClient is a singleton on client, fresh instance per server request
 - **shadcn/ui:** Components in `src/components/ui/`, use `cn()` from `@/lib/utils` for class merging
 
+## API
+
+- **Coins.ph REST API docs:** https://docs.coins.ph/rest-api/
+- Use this as the source of truth for all Coins.ph API integration (endpoints, auth, payloads, error codes)
+
 ## Conventions
 
 - Functional components only, no class components
