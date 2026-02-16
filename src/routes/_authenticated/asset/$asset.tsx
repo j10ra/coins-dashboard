@@ -1,7 +1,8 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { useMemo, useState } from "react";
+import { OrderForm } from "@/components/order-form";
 import { CHART_RANGES, PriceChart } from "@/components/price-chart";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetHeader,
+	SheetTitle,
+} from "@/components/ui/sheet";
 import {
 	Table,
 	TableBody,
@@ -30,11 +38,9 @@ import type { Trade } from "@/server/trade.functions";
 export const Route = createFileRoute("/_authenticated/asset/$asset")({
 	loader: ({ context, params }) => {
 		const symbol = `${params.asset}PHP`;
-		return Promise.all([
-			context.queryClient.ensureQueryData(tradeQueries.bySymbol(symbol)),
-			context.queryClient.ensureQueryData(accountQueries.portfolio()),
-			context.queryClient.ensureQueryData(tickerQueries.price(symbol)),
-		]);
+		context.queryClient.prefetchQuery(tradeQueries.bySymbol(symbol));
+		context.queryClient.prefetchQuery(accountQueries.portfolio());
+		context.queryClient.prefetchQuery(tickerQueries.price(symbol));
 	},
 	component: AssetDetail,
 });
@@ -85,15 +91,22 @@ function AssetDetail() {
 	const { asset } = Route.useParams();
 	const symbol = `${asset}PHP`;
 	const { isLive } = useRealtimeAsset({ symbol });
-	const { data: allTrades } = useSuspenseQuery(tradeQueries.bySymbol(symbol));
-	const { data: portfolio } = useSuspenseQuery(accountQueries.portfolio());
-	const { data: ticker } = useSuspenseQuery(tickerQueries.price(symbol));
+	const { data: allTrades = [] } = useQuery(tradeQueries.bySymbol(symbol));
+	const { data: portfolio } = useQuery(accountQueries.portfolio());
+	const { data: ticker } = useQuery(tickerQueries.price(symbol));
 	const [period, setPeriod] = useState<string>("all");
 	const [chartRange, setChartRange] = useState("365");
+	const [orderSheet, setOrderSheet] = useState<{
+		open: boolean;
+		side: "BUY" | "SELL";
+	}>({ open: false, side: "BUY" });
 
-	const balance = portfolio.balances.find((b) => b.asset === asset);
+	const price = ticker?.price ?? 0;
+	const balance = portfolio?.balances.find((b) => b.asset === asset);
 	const holding = balance ? Number(balance.free) + Number(balance.locked) : 0;
-	const holdingPhp = holding * ticker.price;
+	const holdingPhp = holding * price;
+	const phpBalance = portfolio?.balances.find((b) => b.asset === "PHP");
+	const phpFree = phpBalance ? Number(phpBalance.free) : 0;
 
 	const days = PERIODS.find((p) => p.value === period)?.days ?? 0;
 	const trades = useMemo(() => {
@@ -103,7 +116,7 @@ function AssetDetail() {
 
 	const allStats = computeStats(allTrades);
 	const filtered = computeStats(trades);
-	const boughtValueNow = allStats.buyQty * ticker.price;
+	const boughtValueNow = allStats.buyQty * price;
 	const pnl = boughtValueNow - allStats.buyCost;
 	const pnlPct = allStats.buyCost > 0 ? (pnl / allStats.buyCost) * 100 : 0;
 
@@ -156,6 +169,23 @@ function AssetDetail() {
 						<CardDescription className="tabular-nums">
 							{fmtNum(holding)} {asset}
 						</CardDescription>
+						<div className="flex gap-2 pt-2">
+							<Button
+								size="sm"
+								className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+								onClick={() => setOrderSheet({ open: true, side: "BUY" })}
+							>
+								Buy
+							</Button>
+							<Button
+								size="sm"
+								variant="destructive"
+								className="flex-1"
+								onClick={() => setOrderSheet({ open: true, side: "SELL" })}
+							>
+								Sell
+							</Button>
+						</div>
 					</CardHeader>
 				</Card>
 				<PriceChart symbol={symbol} range={chartRange} />
@@ -174,7 +204,7 @@ function AssetDetail() {
 							)}
 						</CardDescription>
 						<CardTitle className="text-2xl tabular-nums">
-							₱{fmtNum(ticker.price, 2)}
+							₱{fmtNum(price, 2)}
 						</CardTitle>
 					</CardHeader>
 				</Card>
@@ -295,6 +325,31 @@ function AssetDetail() {
 					)}
 				</CardContent>
 			</Card>
+			<Sheet
+				open={orderSheet.open}
+				onOpenChange={(open) => setOrderSheet((prev) => ({ ...prev, open }))}
+			>
+				<SheetContent>
+					<SheetHeader>
+						<SheetTitle>
+							{orderSheet.side === "BUY" ? "Buy" : "Sell"} {asset}
+						</SheetTitle>
+						<SheetDescription>
+							Place a {orderSheet.side === "BUY" ? "buy" : "sell"} order on{" "}
+							{symbol}
+						</SheetDescription>
+					</SheetHeader>
+					<OrderForm
+						symbol={symbol}
+						asset={asset}
+						side={orderSheet.side}
+						price={price}
+						balance={holding}
+						phpBalance={phpFree}
+						onSuccess={() => setOrderSheet({ open: false, side: orderSheet.side })}
+					/>
+				</SheetContent>
+			</Sheet>
 		</div>
 	);
 }

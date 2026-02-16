@@ -16,8 +16,10 @@ import { Route as DemoTanstackQueryRouteImport } from './routes/demo/tanstack-qu
 import { Route as DemoStoreRouteImport } from './routes/demo/store'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AuthenticatedSetupKeysRouteImport } from './routes/_authenticated/setup-keys'
+import { Route as AuthenticatedOrdersRouteImport } from './routes/_authenticated/orders'
 import { Route as DemoFormSimpleRouteImport } from './routes/demo/form.simple'
 import { Route as DemoFormAddressRouteImport } from './routes/demo/form.address'
+import { Route as AuthenticatedAssetAssetRouteImport } from './routes/_authenticated/asset/$asset'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -53,6 +55,11 @@ const AuthenticatedSetupKeysRoute = AuthenticatedSetupKeysRouteImport.update({
   path: '/setup-keys',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedOrdersRoute = AuthenticatedOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const DemoFormSimpleRoute = DemoFormSimpleRouteImport.update({
   id: '/demo/form/simple',
   path: '/demo/form/simple',
@@ -63,24 +70,33 @@ const DemoFormAddressRoute = DemoFormAddressRouteImport.update({
   path: '/demo/form/address',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAssetAssetRoute = AuthenticatedAssetAssetRouteImport.update({
+  id: '/asset/$asset',
+  path: '/asset/$asset',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/login': typeof LoginRoute
+  '/orders': typeof AuthenticatedOrdersRoute
   '/setup-keys': typeof AuthenticatedSetupKeysRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/demo/store': typeof DemoStoreRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/asset/$asset': typeof AuthenticatedAssetAssetRoute
   '/demo/form/address': typeof DemoFormAddressRoute
   '/demo/form/simple': typeof DemoFormSimpleRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/orders': typeof AuthenticatedOrdersRoute
   '/setup-keys': typeof AuthenticatedSetupKeysRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/demo/store': typeof DemoStoreRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/': typeof AuthenticatedIndexRoute
+  '/asset/$asset': typeof AuthenticatedAssetAssetRoute
   '/demo/form/address': typeof DemoFormAddressRoute
   '/demo/form/simple': typeof DemoFormSimpleRoute
 }
@@ -88,11 +104,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
+  '/_authenticated/orders': typeof AuthenticatedOrdersRoute
   '/_authenticated/setup-keys': typeof AuthenticatedSetupKeysRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/demo/store': typeof DemoStoreRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/asset/$asset': typeof AuthenticatedAssetAssetRoute
   '/demo/form/address': typeof DemoFormAddressRoute
   '/demo/form/simple': typeof DemoFormSimpleRoute
 }
@@ -101,31 +119,37 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/orders'
     | '/setup-keys'
     | '/auth/callback'
     | '/demo/store'
     | '/demo/tanstack-query'
+    | '/asset/$asset'
     | '/demo/form/address'
     | '/demo/form/simple'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
+    | '/orders'
     | '/setup-keys'
     | '/auth/callback'
     | '/demo/store'
     | '/demo/tanstack-query'
     | '/'
+    | '/asset/$asset'
     | '/demo/form/address'
     | '/demo/form/simple'
   id:
     | '__root__'
     | '/_authenticated'
     | '/login'
+    | '/_authenticated/orders'
     | '/_authenticated/setup-keys'
     | '/auth/callback'
     | '/demo/store'
     | '/demo/tanstack-query'
     | '/_authenticated/'
+    | '/_authenticated/asset/$asset'
     | '/demo/form/address'
     | '/demo/form/simple'
   fileRoutesById: FileRoutesById
@@ -191,6 +215,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSetupKeysRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/orders': {
+      id: '/_authenticated/orders'
+      path: '/orders'
+      fullPath: '/orders'
+      preLoaderRoute: typeof AuthenticatedOrdersRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/demo/form/simple': {
       id: '/demo/form/simple'
       path: '/demo/form/simple'
@@ -205,17 +236,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DemoFormAddressRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/asset/$asset': {
+      id: '/_authenticated/asset/$asset'
+      path: '/asset/$asset'
+      fullPath: '/asset/$asset'
+      preLoaderRoute: typeof AuthenticatedAssetAssetRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedOrdersRoute: typeof AuthenticatedOrdersRoute
   AuthenticatedSetupKeysRoute: typeof AuthenticatedSetupKeysRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAssetAssetRoute: typeof AuthenticatedAssetAssetRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedOrdersRoute: AuthenticatedOrdersRoute,
   AuthenticatedSetupKeysRoute: AuthenticatedSetupKeysRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAssetAssetRoute: AuthenticatedAssetAssetRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

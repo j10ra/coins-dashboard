@@ -1,81 +1,150 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ChevronRight, Wallet } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
 import { accountQueries } from "@/lib/queries/account";
 
 export const Route = createFileRoute("/_authenticated/")({
 	loader: ({ context }) =>
-		context.queryClient.ensureQueryData(accountQueries.profile()),
+		context.queryClient.ensureQueryData(accountQueries.portfolio()),
 	component: Dashboard,
 });
 
+function fmtPhp(value: number) {
+	return value.toLocaleString("en-PH", {
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
+	});
+}
+
+function fmtCrypto(value: string) {
+	const n = Number(value);
+	if (n === 0) return "0.00";
+	return n.toLocaleString(undefined, {
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 8,
+	});
+}
+
 function Dashboard() {
-	const { data: account } = useSuspenseQuery(accountQueries.profile());
-	const nonZeroBalances = account.balances.filter(
-		(b) => Number(b.free) > 0 || Number(b.locked) > 0,
-	);
+	const { data: portfolio } = useSuspenseQuery(accountQueries.portfolio());
+
+	const nonZeroBalances = portfolio.balances
+		.filter((b) => Number(b.free) > 0 || Number(b.locked) > 0)
+		.sort((a, b) => Number(b.free) - Number(a.free));
 
 	return (
-		<div className="p-6">
-			<div className="mx-auto max-w-3xl space-y-6">
-				<h1 className="text-3xl font-bold text-white">Account</h1>
-
-				<div className="rounded-xl border border-slate-700 bg-slate-800/50 p-6">
-					<dl className="grid grid-cols-2 gap-4 text-sm">
-						<div>
-							<dt className="text-slate-400">Type</dt>
-							<dd className="text-white font-medium">{account.accountType}</dd>
-						</div>
-						<div>
-							<dt className="text-slate-400">Trading</dt>
-							<dd className="text-white font-medium">
-								{account.canTrade ? "Enabled" : "Disabled"}
-							</dd>
-						</div>
-						<div>
-							<dt className="text-slate-400">Deposits</dt>
-							<dd className="text-white font-medium">
-								{account.canDeposit ? "Enabled" : "Disabled"}
-							</dd>
-						</div>
-						<div>
-							<dt className="text-slate-400">Withdrawals</dt>
-							<dd className="text-white font-medium">
-								{account.canWithdraw ? "Enabled" : "Disabled"}
-							</dd>
-						</div>
-					</dl>
-				</div>
-
-				{nonZeroBalances.length > 0 && (
-					<div className="rounded-xl border border-slate-700 bg-slate-800/50 p-6">
-						<h2 className="mb-4 text-lg font-semibold text-white">Balances</h2>
-						<table className="w-full text-sm">
-							<thead>
-								<tr className="text-slate-400 text-left">
-									<th className="pb-2">Asset</th>
-									<th className="pb-2 text-right">Available</th>
-									<th className="pb-2 text-right">Locked</th>
-								</tr>
-							</thead>
-							<tbody>
-								{nonZeroBalances.map((b) => (
-									<tr key={b.asset} className="border-t border-slate-700/50">
-										<td className="py-2 font-medium text-white">{b.asset}</td>
-										<td className="py-2 text-right text-slate-300">{b.free}</td>
-										<td className="py-2 text-right text-slate-300">
-											{b.locked}
-										</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
+		<div className="flex flex-1 flex-col gap-4 p-4">
+			<Card>
+				<CardHeader>
+					<CardDescription>Estimated Portfolio Value</CardDescription>
+					<CardTitle className="text-3xl font-bold tabular-nums">
+						₱{fmtPhp(portfolio.totalPhp)}
+					</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div className="flex gap-2">
+						<Badge variant={portfolio.canTrade ? "default" : "secondary"}>
+							Trading {portfolio.canTrade ? "On" : "Off"}
+						</Badge>
+						<Badge variant={portfolio.canDeposit ? "default" : "secondary"}>
+							Deposits {portfolio.canDeposit ? "On" : "Off"}
+						</Badge>
+						<Badge variant={portfolio.canWithdraw ? "default" : "secondary"}>
+							Withdrawals {portfolio.canWithdraw ? "On" : "Off"}
+						</Badge>
 					</div>
-				)}
+				</CardContent>
+			</Card>
 
-				{nonZeroBalances.length === 0 && (
-					<p className="text-slate-400 text-center">No balances found.</p>
-				)}
-			</div>
+			<Card>
+				<CardHeader>
+					<CardTitle>Balances</CardTitle>
+					<CardDescription>
+						{nonZeroBalances.length} asset
+						{nonZeroBalances.length !== 1 && "s"} with funds
+					</CardDescription>
+				</CardHeader>
+				<CardContent className="px-0">
+					{nonZeroBalances.length > 0 ? (
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead className="pl-6">Asset</TableHead>
+									<TableHead className="text-right">Available</TableHead>
+									<TableHead className="text-right">Locked</TableHead>
+									<TableHead className="text-right pr-6">Total</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{nonZeroBalances.map((b) => {
+									const total = Number(b.free) + Number(b.locked);
+									const isPhp = b.asset === "PHP";
+									const row = (
+										<TableRow
+											key={b.asset}
+											className={isPhp ? "" : "cursor-pointer"}
+										>
+											<TableCell className="pl-6 font-medium">
+												<div className="flex items-center gap-2">
+													<Wallet className="size-4 text-muted-foreground" />
+													{b.asset}
+												</div>
+											</TableCell>
+											<TableCell className="text-right tabular-nums">
+												{fmtCrypto(b.free)}
+											</TableCell>
+											<TableCell className="text-right tabular-nums">
+												{fmtCrypto(b.locked)}
+											</TableCell>
+											<TableCell className="text-right pr-6 tabular-nums">
+												<div className="flex items-center justify-end gap-2">
+													<span className="font-medium">
+														{fmtCrypto(String(total))}
+													</span>
+													{!isPhp && (
+														<ChevronRight className="size-4 text-muted-foreground" />
+													)}
+												</div>
+											</TableCell>
+										</TableRow>
+									);
+									if (isPhp) return row;
+									return (
+										<Link
+											key={b.asset}
+											to="/asset/$asset"
+											params={{ asset: b.asset }}
+											className="contents"
+										>
+											{row}
+										</Link>
+									);
+								})}
+							</TableBody>
+						</Table>
+					) : (
+						<p className="px-6 text-sm text-muted-foreground">
+							No balances found.
+						</p>
+					)}
+				</CardContent>
+			</Card>
 		</div>
 	);
 }

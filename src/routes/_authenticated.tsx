@@ -1,8 +1,9 @@
-import { createFileRoute, Outlet, redirect, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { LogOut } from "lucide-react";
+import { AppSidebar } from "@/components/app-sidebar";
+import { SiteHeader } from "@/components/site-header";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { getSession } from "@/lib/session.server";
-import { createSupabaseServer } from "@/lib/supabase.server";
 import { hasKeys } from "@/server/keys.functions";
 
 const getUser = createServerFn({ method: "GET" }).handler(async () => {
@@ -13,13 +14,15 @@ const getUser = createServerFn({ method: "GET" }).handler(async () => {
 	}
 });
 
-const logoutFn = createServerFn({ method: "POST" }).handler(async () => {
-	const supabase = createSupabaseServer();
-	await supabase.auth.signOut();
-});
+let cachedAuth: {
+	user: NonNullable<Awaited<ReturnType<typeof getUser>>>;
+	keysConfigured: boolean;
+} | null = null;
 
 export const Route = createFileRoute("/_authenticated")({
 	beforeLoad: async ({ location }) => {
+		if (cachedAuth) return cachedAuth;
+
 		const user = await getUser();
 
 		if (!user) {
@@ -39,7 +42,8 @@ export const Route = createFileRoute("/_authenticated")({
 			throw redirect({ to: "/" });
 		}
 
-		return { user, keysConfigured: configured };
+		cachedAuth = { user, keysConfigured: configured };
+		return cachedAuth;
 	},
 	component: AuthenticatedLayout,
 	pendingComponent: WorkspaceLoader,
@@ -47,40 +51,34 @@ export const Route = createFileRoute("/_authenticated")({
 
 function WorkspaceLoader() {
 	return (
-		<div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+		<div className="flex min-h-screen items-center justify-center">
 			<div className="flex flex-col items-center gap-3">
-				<div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-600 border-t-cyan-500" />
-				<p className="text-sm text-slate-400">Loading workspace...</p>
+				<div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
+				<p className="text-sm text-muted-foreground">Loading workspace...</p>
 			</div>
 		</div>
 	);
 }
 
 function AuthenticatedLayout() {
-	const { user } = Route.useRouteContext();
-	const router = useRouter();
-
-	const handleLogout = async () => {
-		await logoutFn();
-		router.navigate({ to: "/login" });
-	};
+	const { user, keysConfigured } = Route.useRouteContext();
 
 	return (
-		<div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-			<header className="border-b border-slate-700/50 px-6 py-3">
-				<div className="mx-auto flex max-w-3xl items-center justify-between">
-					<span className="text-sm font-medium text-slate-300">{user.email}</span>
-					<button
-						type="button"
-						onClick={handleLogout}
-						className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:bg-slate-800 hover:text-white"
-					>
-						<LogOut className="h-4 w-4" />
-						Logout
-					</button>
+		<SidebarProvider
+			defaultOpen={true}
+			style={
+				{
+					"--sidebar-width": "calc(var(--spacing) * 72)",
+				} as React.CSSProperties
+			}
+		>
+			<AppSidebar user={user} keysConfigured={keysConfigured} />
+			<SidebarInset>
+				<SiteHeader />
+				<div className="flex flex-1 flex-col">
+					<Outlet />
 				</div>
-			</header>
-			<Outlet />
-		</div>
+			</SidebarInset>
+		</SidebarProvider>
 	);
 }

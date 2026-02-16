@@ -6,6 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Coins.ph dashboard — full-stack React app built with TanStack Start.
 
+# shadcn instructions
+
+Use the latest version of Shadcn to install new components, like this command to add a button component:
+
+```bash
+pnpm dlx shadcn@latest add button
+```
+
 ## Commands
 
 ```bash
@@ -63,6 +71,40 @@ src/
 - **Coins.ph REST API docs:** https://docs.coins.ph/rest-api/
 - Use this as the source of truth for all Coins.ph API integration (endpoints, auth, payloads, error codes)
 
+- **Coins.ph WebSocket Streams docs:** https://docs.coins.ph/web-socket-streams/
+- Real-time market data streams (ticker, trades, depth, kline) via WebSocket
+
+- **Coins.ph User Data Streams docs:** https://docs.coins.ph/user-data-stream/
+- Real-time private user data streams (account updates, order updates, balance changes) via WebSocket
+
+
+### API Error Codes
+
+Coins.ph returns errors as `{"code":-XXXX,"msg":"..."}` — sometimes with HTTP 200. Key codes:
+
+| Code | Meaning |
+|------|---------|
+| -1000 | Unknown error |
+| -1002 | Unauthorized (missing API key header) |
+| -1003 | Rate limit exceeded |
+| -1015 | Too many orders |
+| -1020 | Unsupported operation (read-only key, not functional) |
+| -1021 | Timestamp outside recvWindow |
+| -1022 | Invalid signature |
+| -1025 | Invalid parameter value |
+| -1103 | Unknown/missing required parameter |
+| -1106 | Unnecessary parameter provided |
+| -1131 | Insufficient balance |
+| -2010 | New order rejected |
+| -2011 | Cancel rejected |
+| -2013 | No such order |
+| -2015 | API key disabled |
+| -9xxx | Filter failures (price/qty/notional validation) |
+
+Full reference: https://docs.coins.ph/errors/
+
+**Important:** API can return error JSON with HTTP 200 status. `coins.server.ts` uses `assertNoApiError()` to catch these.
+
 ## Conventions
 
 - Functional components only, no class components
@@ -70,3 +112,4 @@ src/
 - Use `createFileRoute` for page routes, `createRootRouteWithContext` for root
 - Prefer TanStack Query for async data, TanStack Store for shared client state
 - Icons from `lucide-react`
+- Always use shadcn/ui components for UI — never write raw HTML inputs, buttons, dialogs, etc.

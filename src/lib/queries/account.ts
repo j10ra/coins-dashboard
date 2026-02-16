@@ -1,9 +1,10 @@
 import { queryOptions } from "@tanstack/react-query";
-import { getAccount } from "@/server/account.functions";
+import { getAccount, getPortfolio } from "@/server/account.functions";
 
 const keys = {
 	all: ["account"] as const,
 	profile: () => [...keys.all, "profile"] as const,
+	portfolio: () => [...keys.all, "portfolio"] as const,
 };
 
 export const accountQueries = {
@@ -12,5 +13,11 @@ export const accountQueries = {
 			queryKey: keys.profile(),
 			queryFn: () => getAccount(),
 			staleTime: 2 * 60 * 1000,
+		}),
+	portfolio: () =>
+		queryOptions({
+			queryKey: keys.portfolio(),
+			queryFn: () => getPortfolio(),
+			staleTime: 60_000,
 		}),
 };
