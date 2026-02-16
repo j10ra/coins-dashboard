@@ -1,0 +1,19 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Volumes/Drive/__x/Coins/coins-code && npx tsc --noEmit --pretty 2>&1 | head -50"
+          },
+          {
+            "type": "command",
+            "command": "cd /Volumes/Drive/__x/Coins/coins-code && npx biome lint --no-errors-on-unmatched $CLAUDE_FILE_PATHS 2>&1 | head -50"
+          }
+        ]
+      }
+    ]
+  }
+}
